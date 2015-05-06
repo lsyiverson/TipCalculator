@@ -8,12 +8,16 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UITableViewDataSource {
     @IBOutlet var totalTextField : UITextField!
     @IBOutlet var taxPctSlider : UISlider!
     @IBOutlet var taxPctLabel : UILabel!
     @IBOutlet var resultsTextView : UITextView!
+    let tipCalc = TipCalculatorModel(total: 33.25, taxPct: 0.06)
+    var possibleTips = Dictionary<Int, (tipAmt:Double, total:Double)>()
+    var sortedKeys:[Int] = []
 
+    @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
         refreshUI()
@@ -25,25 +29,10 @@ class ViewController: UIViewController {
     }
 
     @IBAction func calculateTapped(sender : AnyObject) {
-        // 1
         tipCalc.total = Double((totalTextField.text as NSString).doubleValue)
-        // 2
-        let possibleTips = tipCalc.returnPossibleTips()
-        var results = ""
-        // 3
-//        for (tipPct, tipValue) in possibleTips {
-//            // 4
-//            results += "\(tipPct)%: \(tipValue)\n"
-//        }
-        var keys = Array(possibleTips.keys)
-        sort(&keys)
-        for tipPct in keys {
-            let tipValue = possibleTips[tipPct]!
-            let prettyTipValue = String(format:"%.2f", tipValue)
-            results += "\(tipPct)%: \(prettyTipValue)\n"
-        }
-        // 5
-        resultsTextView.text = results
+        possibleTips = tipCalc.returnPossibleTips()
+        sortedKeys = sorted(Array(possibleTips.keys))
+        tableView.reloadData()
     }
     @IBAction func taxPercentageChanged(sender : AnyObject) {
         tipCalc.taxPct = Double(taxPctSlider.value) / 100.0
@@ -53,8 +42,6 @@ class ViewController: UIViewController {
         totalTextField.resignFirstResponder()
     }
     
-    let tipCalc = TipCalculatorModel(total: 33.25, taxPct: 0.06)
-    
     func refreshUI() {
         // 1
         totalTextField.text = String(format: "%0.2f", tipCalc.total)
@@ -62,8 +49,22 @@ class ViewController: UIViewController {
         taxPctSlider.value = Float(tipCalc.taxPct) * 100.0
         // 3
         taxPctLabel.text = "Tax Percentage (\(Int(taxPctSlider.value))%)"
-        // 4
-        resultsTextView.text = ""
+    }
+    
+    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return sortedKeys.count
+    }
+    
+    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: UITableViewCellStyle.Value2, reuseIdentifier: nil)
+        
+        let tipPct = sortedKeys[indexPath.row]
+        let tipAmt = possibleTips[tipPct]!.tipAmt
+        let total = possibleTips[tipPct]!.total
+        
+        cell.textLabel?.text = "\(tipPct)%:"
+        cell.detailTextLabel?.text = String(format:"Tip: $%0.2f, Total: $%0.2f", tipAmt, total)
+        return cell
     }
 }
 
